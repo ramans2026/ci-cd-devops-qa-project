@@ -45,11 +45,23 @@ jobs:
     # --------------------------------------------------
     # STEP 5: SECURITY TESTING (OWASP ZAP)
     # --------------------------------------------------
-    - name: OWASP ZAP Baseline Scan
+    - name: OWASP ZAP Baseline Scan (Non-blocking WARN)
       uses: zaproxy/action-baseline@v0.10.0
       with:
         target: 'https://jsonplaceholder.typicode.com'
-        fail_on_warn: false
+        cmd_options: '-I'
+        artifact_name: zap-report
+
+    - name: Upload ZAP Security Report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: zap-security-report
+        path: |
+          report_html.html
+          report_md.md
+          report_json.json
+
 
     # --------------------------------------------------
     # STEP 6: INSTALL k6 (PERFORMANCE TESTING)
