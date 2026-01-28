@@ -45,16 +45,17 @@ jobs:
     # --------------------------------------------------
     # STEP 5: SECURITY TESTING (OWASP ZAP)
     # --------------------------------------------------
-    - name: OWASP ZAP Baseline Scan (Non-blocking WARN)
+    - name: OWASP ZAP Baseline Scan (CI – non-blocking)
       uses: zaproxy/action-baseline@v0.10.0
+      continue-on-error: true
       with:
         target: 'https://jsonplaceholder.typicode.com'
         cmd_options: '-I'
-        artifact_name: zap-report
+        artifact_name: zap-security-report
 
-    - name: Upload ZAP Security Report
-      uses: actions/upload-artifact@v4
+    - name: Upload ZAP Reports
       if: always()
+      uses: actions/upload-artifact@v4
       with:
         name: zap-security-report
         path: |
