@@ -1,0 +1,77 @@
+name: CI-CD DevOps QA Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  qa-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+    # --------------------------------------------------
+    # STEP 1: CHECKOUT CODE
+    # --------------------------------------------------
+    - name: Checkout source code
+      uses: actions/checkout@v4
+
+    # --------------------------------------------------
+    # STEP 2: SETUP NODE (Required for Newman)
+    # --------------------------------------------------
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    # --------------------------------------------------
+    # STEP 3: INSTALL NEWMAN (API TESTING)
+    # --------------------------------------------------
+    - name: Install Newman
+      run: |
+        npm install -g newman newman-reporter-html
+
+    # --------------------------------------------------
+    # STEP 4: RUN API TESTS (FAIL FAST)
+    # --------------------------------------------------
+    - name: Run API Tests with Newman
+      run: |
+        mkdir -p reports
+        newman run api-tests/collection.json \
+          -e api-tests/environment.json \
+          --reporters cli,html \
+          --reporter-html-export reports/api-test-report.html
+
+    # --------------------------------------------------
+    # STEP 5: SECURITY TESTING (OWASP ZAP)
+    # --------------------------------------------------
+    - name: OWASP ZAP Security Scan
+      uses: zaproxy/action-full-scan@v0.9.0
+      with:
+        target: 'https://undexterously-buyable-hue.ngrok-free.dev'
+        fail_action: true
+
+    # --------------------------------------------------
+    # STEP 6: INSTALL k6 (PERFORMANCE TESTING)
+    # --------------------------------------------------
+    - name: Install k6
+      run: |
+        curl -L https://github.com/grafana/k6/releases/download/v0.48.0/k6-v0.48.0-linux-amd64.tar.gz | tar xz
+        sudo mv k6-v0.48.0-linux-amd64/k6 /usr/local/bin/k6
+
+    # --------------------------------------------------
+    # STEP 7: RUN PERFORMANCE TEST (FAIL FAST)
+    # --------------------------------------------------
+    - name: Run Performance Tests with k6
+      run: |
+        k6 run performance-tests/loadtest.js
+
+    # --------------------------------------------------
+    # STEP 8: UPLOAD REPORTS (HTML EVIDENCE)
+    # --------------------------------------------------
+    - name: Upload Test Reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: qa-test-reports
+        path: reports/
